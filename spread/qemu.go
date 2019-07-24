@@ -135,11 +135,13 @@ func qemuCmd(system *System, path string, mem, port int) (*exec.Cmd, error) {
 		"-snapshot",
 		"-m", strconv.Itoa(mem),
 		"-smp", strconv.Itoa(cpus),
-		"-net", "nic",
+		"-net", "nic,model=virtio",
 		"-net", fwd,
 		"-serial", serial,
 		"-monitor", monitor,
-		path)
+		"-drive", "file="+path+",if=virtio,index=0",
+		"-object", "rng-random,filename=/dev/urandom,id=rng0", "-device", "virtio-rng-pci,rng=rng0",
+	)
 	if os.Getenv("SPREAD_QEMU_GUI") != "1" {
 		cmd.Args = append([]string{cmd.Args[0], "-nographic"}, cmd.Args[1:]...)
 	}
