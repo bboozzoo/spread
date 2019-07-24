@@ -356,7 +356,10 @@ func (r *Runner) prepareContent() (err error) {
 			extraFiles:  []*os.File{tarr, gzw},
 			stop:        r.contentTomb.Dying(),
 		}
-		gz := gzip.NewWriter(file)
+		gz, err := gzip.NewWriterLevel(file, gzip.BestCompression)
+		if err != nil {
+			return fmt.Errorf("cannot create gzip compression pipeline: %v", err)
+		}
 
 		var errch = make(chan error, 3)
 		var wg sync.WaitGroup
