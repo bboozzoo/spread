@@ -119,7 +119,18 @@ func (p *qemuProvider) Allocate(ctx context.Context, system *System) (Server, er
 	if systemCPUs := runtime.NumCPU(); systemCPUs < cpus {
 		cpus = systemCPUs
 	}
-	cmd := exec.Command("kvm", "-snapshot", "-smp", strconv.Itoa(cpus), "-m", strconv.Itoa(mem), "-net", "nic", "-net", fwd, "-serial", serial, "-monitor", monitor, path)
+	kvmArgs := []string{
+		"-snapshot",
+		"-smp", strconv.Itoa(cpus),
+		"-m", strconv.Itoa(mem),
+		"-net", "nic,model=virtio",
+		"-net", fwd,
+		"-serial", serial,
+		"-monitor", monitor,
+		"-drive", "file=" + path + ",if=virtio,index=0",
+		"-object", "rng-random,filename=/dev/urandom,id=rng0", "-device", "virtio-rng-pci,rng=rng0",
+	}
+	cmd := exec.Command("kvm", kvmArgs...)
 	if os.Getenv("SPREAD_QEMU_GUI") != "1" {
 		cmd.Args = append([]string{cmd.Args[0], "-nographic"}, cmd.Args[1:]...)
 	}
