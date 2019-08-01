@@ -462,7 +462,7 @@ func join(scripts ...string) string {
 		}
 		buf.WriteString("(\n")
 		buf.WriteString(script)
-		buf.WriteString("\n)")
+		buf.WriteString("\n) || exit $?;\n")
 	}
 	return buf.String()
 }
