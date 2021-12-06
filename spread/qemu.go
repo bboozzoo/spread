@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"strings"
 
 	"golang.org/x/net/context"
 )
@@ -130,7 +131,7 @@ func qemuCmd(system *System, path string, mem, port int) (*exec.Cmd, error) {
 	if systemCPUs := runtime.NumCPU(); systemCPUs < cpus {
 		cpus = systemCPUs
 	}
-	cmd := exec.Command("qemu-system-x86_64",
+	args := []string{
 		"-enable-kvm",
 		"-snapshot",
 		"-m", strconv.Itoa(mem),
@@ -139,13 +140,12 @@ func qemuCmd(system *System, path string, mem, port int) (*exec.Cmd, error) {
 		"-net", fwd,
 		"-serial", serial,
 		"-monitor", monitor,
-		"-drive", "file="+path+",if=virtio,index=0",
+		"-drive", "file=" + path + ",if=virtio,index=0",
 		"-object", "rng-random,filename=/dev/urandom,id=rng0", "-device", "virtio-rng-pci,rng=rng0",
-	)
-	if os.Getenv("SPREAD_QEMU_GUI") != "1" {
-		cmd.Args = append([]string{cmd.Args[0], "-nographic"}, cmd.Args[1:]...)
 	}
-
+	if os.Getenv("SPREAD_QEMU_GUI") != "1" {
+		args = append([]string{args[0], "-nographic"}, args[1:]...)
+	}
 	switch system.Bios {
 	case "":
 		// nothing to do, that is the qemu default
@@ -154,10 +154,14 @@ func qemuCmd(system *System, path string, mem, port int) (*exec.Cmd, error) {
 		if err != nil {
 			return nil, err
 		}
-		cmd.Args = append([]string{cmd.Args[0], "-bios", biosPath}, cmd.Args[1:]...)
+		args = append([]string{args[0], "-bios", biosPath}, args[1:]...)
 	default:
 		return nil, fmt.Errorf(`cannot set bios to %q, only "uefi" or unset are supported`, system.Bios)
 	}
+	const qemuCmd = "qemu-system-x86_64"
+	debugf("running: %s", strings.Join(append([]string{qemuCmd}, args...), " "))
+	cmd := exec.Command(qemuCmd, args...)
+
 	return cmd, nil
 }
 
