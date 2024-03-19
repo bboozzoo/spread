@@ -19,13 +19,28 @@ import (
 )
 
 func LXD(p *Project, b *Backend, o *Options) Provider {
-	return &lxdProvider{p, b, o}
+	return &lxdProvider{
+		project: p,
+		backend: b,
+		options: o,
+	}
+}
+
+func LXDVM(p *Project, b *Backend, o *Options) Provider {
+	return &lxdProvider{
+		project: p,
+		backend: b,
+		options: o,
+		vm:      true,
+	}
 }
 
 type lxdProvider struct {
 	project *Project
 	backend *Backend
 	options *Options
+
+	vm bool
 }
 
 type lxdServer struct {
@@ -110,6 +125,13 @@ func (p *lxdProvider) Allocate(ctx context.Context, system *System) (Server, err
 	args := []string{"launch", lxdimage, name}
 	if !p.options.Reuse {
 		args = append(args, "--ephemeral")
+	}
+	if p.vm {
+		args = append(args, "--vm")
+	}
+	if p.backend.Memory > 0 {
+		mem := int(p.backend.Memory / mb)
+		args = append(args, "-c", fmt.Sprintf("limits.memory=%dMiB", mem))
 	}
 	output, err := exec.Command("lxc", args...).CombinedOutput()
 	if err != nil {
@@ -292,8 +314,15 @@ func (p *lxdProvider) lxdLocalImage(system *System) (string, error) {
 		return "", err
 	}
 
+	// TODO use lxd image list --format=json to get all of this in one call
 	var stderr bytes.Buffer
-	cmd := exec.Command("lxc", "image", "list")
+	args := []string{"image", "list"}
+	if p.vm {
+		args = append(args, "type=virtual-machine")
+	} else {
+		args = append(args, "type=container")
+	}
+	cmd := exec.Command("lxc", args...)
 	cmd.Stderr = &stderr
 
 	output, err := cmd.Output()
