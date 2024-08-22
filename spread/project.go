@@ -58,6 +58,7 @@ type Backend struct {
 
 	// Only for qemu so far.
 	Memory Size
+	CPUs   uint
 
 	// Only for Linode, Google, OpenStack so far.
 	Plan     string
