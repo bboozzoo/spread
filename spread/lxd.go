@@ -128,6 +128,7 @@ func (p *lxdProvider) Allocate(ctx context.Context, system *System) (Server, err
 	}
 	if p.vm {
 		args = append(args, "--vm")
+		args = append(args, "-c", fmt.Sprintf("security.secureboot=%v", system.SecureBoot))
 	}
 	if p.backend.Memory > 0 {
 		mem := int(p.backend.Memory / mb)
